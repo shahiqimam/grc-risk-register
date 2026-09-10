@@ -9,7 +9,7 @@ export class UsersService {
   constructor(@InjectRepository(User) private readonly usersRepository: Repository<User>) {}
 
   create(input: { name: string; email: string; passwordHash: string; role?: UserRole }) {
-    return this.usersRepository.save(this.usersRepository.create(input));
+    return this.usersRepository.save(this.usersRepository.create({ ...input, email: input.email.toLowerCase() }));
   }
 
   findAll() {

@@ -99,6 +99,10 @@ export class RisksService {
       .leftJoinAndSelect('controlLinks.control', 'control');
 
     Object.entries(where).forEach(([key, value]) => {
+      if (key === 'title') {
+        qb.andWhere('(risk.title ILIKE :search OR risk.riskCode ILIKE :search)', { search: `%${query.search}%` });
+        return;
+      }
       qb.andWhere(`risk.${key} = :${key}`, { [key]: value });
     });
     if (query.reviewDue === 'true') {
@@ -139,9 +143,17 @@ export class RisksService {
   async update(id: string, dto: UpdateRiskDto, changedById?: string) {
     const risk = await this.findOne(id);
     const beforeState = this.historyState(risk);
-    Object.assign(risk, dto);
+    const { linkedAssets, linkedControls, ...riskFields } = dto;
+    Object.assign(risk, riskFields);
     await this.applyScores(risk);
     const saved = await this.risksRepository.save(risk);
+    if (linkedAssets) {
+      await this.syncAssetLinks(saved, linkedAssets);
+    }
+    if (linkedControls) {
+      await this.syncControlLinks(saved, linkedControls);
+      await this.recalculateRisk(saved.id, changedById);
+    }
     await this.recordHistory(saved.id, changedById, RiskHistoryEventType.RISK_UPDATED, `Risk ${saved.riskCode} updated`, beforeState, this.historyState(saved));
     return this.findOne(saved.id);
   }
@@ -231,6 +243,22 @@ export class RisksService {
   private async applyScores(risk: Risk) {
     const controls = risk.controlLinks?.map((link) => link.control.effectiveness) ?? [];
     Object.assign(risk, this.scoringService.calculate(risk.likelihood, risk.impact, controls));
+  }
+
+  private async syncAssetLinks(risk: Risk, assetIds: string[]) {
+    await this.riskAssetsRepository.delete({ risk: { id: risk.id } });
+    if (!assetIds.length) return;
+    const assets = await this.assetsRepository.findBy({ id: In(assetIds) });
+    if (assets.length !== assetIds.length) throw new NotFoundException('Linked asset not found');
+    await this.riskAssetsRepository.save(assets.map((asset) => this.riskAssetsRepository.create({ risk, asset })));
+  }
+
+  private async syncControlLinks(risk: Risk, controlIds: string[]) {
+    await this.riskControlsRepository.delete({ risk: { id: risk.id } });
+    if (!controlIds.length) return;
+    const controls = await this.controlsRepository.findBy({ id: In(controlIds) });
+    if (controls.length !== controlIds.length) throw new NotFoundException('Linked control not found');
+    await this.riskControlsRepository.save(controls.map((control) => this.riskControlsRepository.create({ risk, control })));
   }
 
   private async nextRiskCode(manager: EntityManager = this.dataSource.manager) {
