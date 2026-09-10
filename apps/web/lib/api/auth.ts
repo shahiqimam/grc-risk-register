@@ -16,3 +16,7 @@ export function login(email: string, password: string) {
     body: JSON.stringify({ email, password })
   });
 }
+
+export function me() {
+  return apiRequest<AuthResponse['user']>('/auth/me');
+}

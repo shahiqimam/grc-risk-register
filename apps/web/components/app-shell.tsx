@@ -3,6 +3,9 @@
 import { BarChart3, Database, FileWarning, Lock, ShieldCheck, Users } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
+import { me } from '@/lib/api/auth';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: BarChart3 },
@@ -14,7 +17,14 @@ const navItems = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const isLogin = pathname === '/login';
+  const user = useQuery({
+    queryKey: ['me'],
+    queryFn: me,
+    enabled: !isLogin && typeof window !== 'undefined' && Boolean(window.localStorage.getItem('accessToken')),
+    retry: false
+  });
 
   if (isLogin) {
     return <main>{children}</main>;
@@ -33,7 +43,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
         <nav className="space-y-1">
-          {navItems.map((item) => {
+          {navItems.filter((item) => item.href !== '/users' || user.data?.role === 'ADMIN').map((item) => {
             const Icon = item.icon;
             const active = pathname.startsWith(item.href);
             return (
@@ -57,9 +67,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <p className="text-sm text-muted">Portfolio application</p>
             <h1 className="text-lg font-semibold">Risk workspace</h1>
           </div>
-          <div className="text-right text-sm">
-            <p className="font-medium">Demo Admin</p>
-            <p className="text-muted">ADMIN</p>
+          <div className="flex items-center gap-3 text-right text-sm">
+            <div>
+              <p className="font-medium">{user.data?.name ?? 'Signed out'}</p>
+              <p className="text-muted">{user.data?.role ?? 'No active session'}</p>
+            </div>
+            <button
+              className="rounded border border-line px-3 py-2 text-xs font-semibold"
+              onClick={() => {
+                window.localStorage.removeItem('accessToken');
+                router.push('/login');
+              }}
+            >
+              Logout
+            </button>
           </div>
         </header>
         <main className="p-6">{children}</main>
