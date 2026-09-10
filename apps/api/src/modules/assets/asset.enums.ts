@@ -1,0 +1,23 @@
+export enum AssetType {
+  APPLICATION = 'APPLICATION',
+  DATABASE = 'DATABASE',
+  SERVER = 'SERVER',
+  ENDPOINT = 'ENDPOINT',
+  NETWORK = 'NETWORK',
+  DATA = 'DATA',
+  BUSINESS_PROCESS = 'BUSINESS_PROCESS',
+  OTHER = 'OTHER'
+}
+
+export enum AssetCriticality {
+  LOW = 'LOW',
+  MEDIUM = 'MEDIUM',
+  HIGH = 'HIGH',
+  CRITICAL = 'CRITICAL'
+}
+
+export enum AssetStatus {
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+  RETIRED = 'RETIRED'
+}

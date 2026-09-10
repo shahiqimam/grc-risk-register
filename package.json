@@ -1,0 +1,27 @@
+{
+  "name": "grc-risk-register",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A full-stack risk-management application for tracking assets, controls, treatments, inherent risk, and residual risk.",
+  "workspaces": [
+    "apps/api",
+    "apps/web"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev --workspace @grc-risk-register/api",
+    "dev:web": "npm run dev --workspace @grc-risk-register/web",
+    "build": "npm run build --workspaces",
+    "lint": "npm run lint --workspaces",
+    "test": "npm run test --workspace @grc-risk-register/api",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md,css}\"",
+    "seed": "npm run seed --workspace @grc-risk-register/api",
+    "migration:run": "npm run migration:run --workspace @grc-risk-register/api"
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3",
+    "typescript": "^5.5.4"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
