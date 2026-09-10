@@ -4,7 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { StatusBadge } from '@/components/status-badge';
-import { createTreatment, getRisk } from '@/lib/api/risks';
+import { createTreatment, deleteTreatment, getRisk, updateTreatment } from '@/lib/api/risks';
+import { Treatment } from '@/lib/api/types';
 
 export default function RiskDetailPage({ params }: { params: { id: string } }) {
   const risk = useQuery({ queryKey: ['risk', params.id], queryFn: () => getRisk(params.id) });
@@ -17,6 +18,8 @@ export default function RiskDetailPage({ params }: { params: { id: string } }) {
     status: 'PLANNED',
     notes: ''
   });
+  const [editingTreatmentId, setEditingTreatmentId] = useState<string | null>(null);
+  const [editTreatmentForm, setEditTreatmentForm] = useState(treatmentForm);
   const treatmentMutation = useMutation({
     mutationFn: () => createTreatment(params.id, treatmentForm),
     onSuccess: async () => {
@@ -24,6 +27,29 @@ export default function RiskDetailPage({ params }: { params: { id: string } }) {
       await queryClient.invalidateQueries({ queryKey: ['risk', params.id] });
     }
   });
+  const updateTreatmentMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: typeof treatmentForm }) => updateTreatment(id, payload),
+    onSuccess: async () => {
+      setEditingTreatmentId(null);
+      await queryClient.invalidateQueries({ queryKey: ['risk', params.id] });
+    }
+  });
+  const deleteTreatmentMutation = useMutation({
+    mutationFn: deleteTreatment,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['risk', params.id] })
+  });
+
+  function beginTreatmentEdit(treatment: Treatment) {
+    setEditingTreatmentId(treatment.id);
+    setEditTreatmentForm({
+      strategy: treatment.strategy,
+      description: treatment.description,
+      owner: treatment.owner,
+      targetDate: treatment.targetDate,
+      status: treatment.status,
+      notes: treatment.notes ?? ''
+    });
+  }
 
   if (risk.isLoading) {
     return <p className="text-sm text-muted">Loading risk...</p>;
@@ -91,9 +117,35 @@ export default function RiskDetailPage({ params }: { params: { id: string } }) {
       <section className="rounded border border-line bg-white p-4">
         <h3 className="font-semibold">Treatments</h3>
         {risk.data.treatments?.length ? (
-          <ul className="mt-3 space-y-2 text-sm text-muted">
+          <ul className="mt-3 space-y-3 text-sm text-muted">
             {risk.data.treatments.map((treatment) => (
-              <li key={treatment.id}>{treatment.strategy}: {treatment.status}, owner {treatment.owner}, target {treatment.targetDate}</li>
+              <li key={treatment.id} className="rounded border border-line p-3">
+                {editingTreatmentId === treatment.id ? (
+                  <div className="grid gap-2 md:grid-cols-5">
+                    <select className="rounded border border-line px-2 py-1" value={editTreatmentForm.strategy} onChange={(event) => setEditTreatmentForm({ ...editTreatmentForm, strategy: event.target.value })}>
+                      {['MITIGATE', 'AVOID', 'TRANSFER', 'ACCEPT'].map((value) => <option key={value}>{value}</option>)}
+                    </select>
+                    <input className="rounded border border-line px-2 py-1" value={editTreatmentForm.owner} onChange={(event) => setEditTreatmentForm({ ...editTreatmentForm, owner: event.target.value })} />
+                    <input className="rounded border border-line px-2 py-1" type="date" value={editTreatmentForm.targetDate} onChange={(event) => setEditTreatmentForm({ ...editTreatmentForm, targetDate: event.target.value })} />
+                    <select className="rounded border border-line px-2 py-1" value={editTreatmentForm.status} onChange={(event) => setEditTreatmentForm({ ...editTreatmentForm, status: event.target.value })}>
+                      {['PLANNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'].map((value) => <option key={value}>{value}</option>)}
+                    </select>
+                    <div className="space-x-2">
+                      <button className="rounded bg-accent px-3 py-1 text-xs font-semibold text-white" onClick={() => updateTreatmentMutation.mutate({ id: treatment.id, payload: editTreatmentForm })}>Save</button>
+                      <button className="rounded border border-line px-3 py-1 text-xs" onClick={() => setEditingTreatmentId(null)}>Cancel</button>
+                    </div>
+                    <input className="rounded border border-line px-2 py-1 md:col-span-5" value={editTreatmentForm.description} onChange={(event) => setEditTreatmentForm({ ...editTreatmentForm, description: event.target.value })} />
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <span>{treatment.strategy}: {treatment.status}, owner {treatment.owner}, target {treatment.targetDate}</span>
+                    <span className="space-x-2">
+                      <button className="rounded border border-line px-3 py-1 text-xs" onClick={() => beginTreatmentEdit(treatment)}>Edit</button>
+                      <button className="rounded border border-red-200 px-3 py-1 text-xs text-danger" onClick={() => deleteTreatmentMutation.mutate(treatment.id)}>Delete</button>
+                    </span>
+                  </div>
+                )}
+              </li>
             ))}
           </ul>
         ) : (
@@ -113,6 +165,8 @@ export default function RiskDetailPage({ params }: { params: { id: string } }) {
           </button>
           <input required className="rounded border border-line px-3 py-2 text-sm md:col-span-5" placeholder="Description" value={treatmentForm.description} onChange={(event) => setTreatmentForm({ ...treatmentForm, description: event.target.value })} />
           {treatmentMutation.error ? <p className="text-sm text-danger md:col-span-5">{treatmentMutation.error.message}</p> : null}
+          {updateTreatmentMutation.error ? <p className="text-sm text-danger md:col-span-5">{updateTreatmentMutation.error.message}</p> : null}
+          {deleteTreatmentMutation.error ? <p className="text-sm text-danger md:col-span-5">{deleteTreatmentMutation.error.message}</p> : null}
         </form>
       </section>
       <section className="rounded border border-line bg-white p-4">

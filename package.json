@@ -13,6 +13,7 @@
     "build": "npm run build --workspaces",
     "lint": "npm run lint --workspaces",
     "test": "npm run test --workspace @grc-risk-register/api",
+    "test:e2e": "npm run test:e2e --workspace @grc-risk-register/api",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md,css}\"",
     "seed": "npm run seed --workspace @grc-risk-register/api",
     "migration:run": "npm run migration:run --workspace @grc-risk-register/api"

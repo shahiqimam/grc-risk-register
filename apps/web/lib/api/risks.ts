@@ -52,3 +52,24 @@ export function createTreatment(
     body: JSON.stringify(payload)
   });
 }
+
+export function updateTreatment(
+  id: string,
+  payload: {
+    strategy?: string;
+    description?: string;
+    owner?: string;
+    targetDate?: string;
+    status?: string;
+    notes?: string;
+  }
+) {
+  return apiRequest<Treatment>(`/treatments/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload)
+  });
+}
+
+export function deleteTreatment(id: string) {
+  return apiRequest<{ deleted: boolean }>(`/treatments/${id}`, { method: 'DELETE' });
+}
