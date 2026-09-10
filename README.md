@@ -133,6 +133,12 @@ docker compose up --build
 
 The API container connects to PostgreSQL using the Docker service name `postgres`. The browser-facing web app uses `NEXT_PUBLIC_API_URL=http://localhost:3001/api/v1`.
 
+On first Docker startup, the API container runs database migrations before starting NestJS. To load demo data after the stack is running:
+
+```bash
+docker compose exec api sh -c "cd apps/api && npm run seed"
+```
+
 ## Database Migrations
 
 ```bash
@@ -161,6 +167,7 @@ Swagger is exposed at http://localhost:3001/api/docs.
 npm run lint
 npm run test
 npm run build
+docker compose up --build
 ```
 
 ## Project Structure
@@ -187,7 +194,7 @@ It shows how a risk-management workflow can be modeled as a clear full-stack app
 
 This is not a compliance platform, certification tool, legal tool, or professional risk advisory system. It does not implement multi-tenancy, evidence workflows, notifications, framework mapping, or enterprise security features.
 
-Docker image verification requires Docker Desktop to be running. Dependency audit results may require planned major framework upgrades as the ecosystem changes.
+Dependency audit results may require planned major framework upgrades as the ecosystem changes.
 
 ## Future Improvements
 

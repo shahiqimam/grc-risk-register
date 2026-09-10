@@ -1,12 +1,17 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { StatusBadge } from '@/components/status-badge';
-import { getHeatmap, getSummary } from '@/lib/api/dashboard';
+import { getCategoryBreakdown, getHeatmap, getInherentVsResidual, getResidualRatingBreakdown, getStatusBreakdown, getSummary } from '@/lib/api/dashboard';
 
 export default function DashboardPage() {
   const summary = useQuery({ queryKey: ['dashboard-summary'], queryFn: getSummary });
   const heatmap = useQuery({ queryKey: ['dashboard-heatmap'], queryFn: getHeatmap });
+  const categories = useQuery({ queryKey: ['dashboard-categories'], queryFn: getCategoryBreakdown });
+  const statuses = useQuery({ queryKey: ['dashboard-statuses'], queryFn: getStatusBreakdown });
+  const residualRatings = useQuery({ queryKey: ['dashboard-residual-ratings'], queryFn: getResidualRatingBreakdown });
+  const comparison = useQuery({ queryKey: ['dashboard-comparison'], queryFn: getInherentVsResidual });
 
   if (summary.isLoading || heatmap.isLoading) {
     return <p className="text-sm text-muted">Loading dashboard...</p>;
@@ -68,6 +73,50 @@ export default function DashboardPage() {
           </p>
         </div>
       </section>
+      <section className="grid gap-6 xl:grid-cols-2">
+        <ChartPanel title="Risks by Category" data={categories.data ?? []} />
+        <ChartPanel title="Risks by Status" data={statuses.data ?? []} />
+        <ChartPanel title="Risks by Residual Rating" data={residualRatings.data ?? []} />
+        <div className="rounded border border-line bg-white p-4">
+          <h3 className="mb-4 font-semibold">Inherent vs Residual</h3>
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={comparison.data ?? []}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="riskCode" tick={{ fontSize: 11 }} />
+                <YAxis allowDecimals={false} />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="inherent" fill="#b45309" />
+                <Bar dataKey="residual" fill="#0f766e" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function ChartPanel({ title, data }: { title: string; data: Array<{ name: string; value: number }> }) {
+  return (
+    <div className="rounded border border-line bg-white p-4">
+      <h3 className="mb-4 font-semibold">{title}</h3>
+      {data.length ? (
+        <div className="h-72">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+              <YAxis allowDecimals={false} />
+              <Tooltip />
+              <Bar dataKey="value" fill="#0f766e" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      ) : (
+        <p className="text-sm text-muted">No data available.</p>
+      )}
     </div>
   );
 }

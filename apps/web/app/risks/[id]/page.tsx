@@ -1,11 +1,29 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import { StatusBadge } from '@/components/status-badge';
-import { getRisk } from '@/lib/api/risks';
+import { createTreatment, getRisk } from '@/lib/api/risks';
 
 export default function RiskDetailPage({ params }: { params: { id: string } }) {
   const risk = useQuery({ queryKey: ['risk', params.id], queryFn: () => getRisk(params.id) });
+  const queryClient = useQueryClient();
+  const [treatmentForm, setTreatmentForm] = useState({
+    strategy: 'MITIGATE',
+    description: '',
+    owner: '',
+    targetDate: '',
+    status: 'PLANNED',
+    notes: ''
+  });
+  const treatmentMutation = useMutation({
+    mutationFn: () => createTreatment(params.id, treatmentForm),
+    onSuccess: async () => {
+      setTreatmentForm({ strategy: 'MITIGATE', description: '', owner: '', targetDate: '', status: 'PLANNED', notes: '' });
+      await queryClient.invalidateQueries({ queryKey: ['risk', params.id] });
+    }
+  });
 
   if (risk.isLoading) {
     return <p className="text-sm text-muted">Loading risk...</p>;
@@ -69,6 +87,33 @@ export default function RiskDetailPage({ params }: { params: { id: string } }) {
             <p className="mt-3 text-sm text-muted">No linked controls.</p>
           )}
         </div>
+      </section>
+      <section className="rounded border border-line bg-white p-4">
+        <h3 className="font-semibold">Treatments</h3>
+        {risk.data.treatments?.length ? (
+          <ul className="mt-3 space-y-2 text-sm text-muted">
+            {risk.data.treatments.map((treatment) => (
+              <li key={treatment.id}>{treatment.strategy}: {treatment.status}, owner {treatment.owner}, target {treatment.targetDate}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-3 text-sm text-muted">No treatments recorded.</p>
+        )}
+        <form className="mt-4 grid gap-3 md:grid-cols-5" onSubmit={(event) => { event.preventDefault(); treatmentMutation.mutate(); }}>
+          <select className="rounded border border-line px-3 py-2 text-sm" value={treatmentForm.strategy} onChange={(event) => setTreatmentForm({ ...treatmentForm, strategy: event.target.value })}>
+            {['MITIGATE', 'AVOID', 'TRANSFER', 'ACCEPT'].map((value) => <option key={value}>{value}</option>)}
+          </select>
+          <input required className="rounded border border-line px-3 py-2 text-sm" placeholder="Owner" value={treatmentForm.owner} onChange={(event) => setTreatmentForm({ ...treatmentForm, owner: event.target.value })} />
+          <input required className="rounded border border-line px-3 py-2 text-sm" type="date" value={treatmentForm.targetDate} onChange={(event) => setTreatmentForm({ ...treatmentForm, targetDate: event.target.value })} />
+          <select className="rounded border border-line px-3 py-2 text-sm" value={treatmentForm.status} onChange={(event) => setTreatmentForm({ ...treatmentForm, status: event.target.value })}>
+            {['PLANNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'].map((value) => <option key={value}>{value}</option>)}
+          </select>
+          <button className="rounded bg-accent px-4 py-2 text-sm font-semibold text-white disabled:opacity-60" disabled={treatmentMutation.isPending}>
+            {treatmentMutation.isPending ? 'Saving...' : 'Add Treatment'}
+          </button>
+          <input required className="rounded border border-line px-3 py-2 text-sm md:col-span-5" placeholder="Description" value={treatmentForm.description} onChange={(event) => setTreatmentForm({ ...treatmentForm, description: event.target.value })} />
+          {treatmentMutation.error ? <p className="text-sm text-danger md:col-span-5">{treatmentMutation.error.message}</p> : null}
+        </form>
       </section>
       <section className="rounded border border-line bg-white p-4">
         <h3 className="font-semibold">History</h3>

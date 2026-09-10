@@ -22,3 +22,19 @@ export function getSummary() {
 export function getHeatmap() {
   return apiRequest<{ model: string; cells: HeatmapCell[][] }>('/dashboard/heatmap');
 }
+
+export function getCategoryBreakdown() {
+  return apiRequest<Array<{ name: string; value: number }>>('/dashboard/category-breakdown');
+}
+
+export function getStatusBreakdown() {
+  return apiRequest<Array<{ name: string; value: number }>>('/dashboard/status-breakdown');
+}
+
+export function getResidualRatingBreakdown() {
+  return apiRequest<Array<{ name: string; value: number }>>('/dashboard/residual-rating-breakdown');
+}
+
+export function getInherentVsResidual() {
+  return apiRequest<Array<{ riskCode: string; inherent: number; residual: number }>>('/dashboard/inherent-vs-residual');
+}

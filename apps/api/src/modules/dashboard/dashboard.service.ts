@@ -44,4 +44,13 @@ export class DashboardService {
       .getRawMany<{ name: string; value: string }>()
       .then((rows) => rows.map((row) => ({ name: row.name, value: Number(row.value) })));
   }
+
+  async inherentVsResidual() {
+    const risks = await this.risksRepository.find({ order: { riskCode: 'ASC' }, take: 20 });
+    return risks.map((risk) => ({
+      riskCode: risk.riskCode,
+      inherent: risk.inherentRiskScore,
+      residual: risk.residualRiskScore
+    }));
+  }
 }

@@ -34,4 +34,9 @@ export class DashboardController {
   residualRatingBreakdown() {
     return this.dashboardService.breakdown('residualRiskRating');
   }
+
+  @Get('inherent-vs-residual')
+  inherentVsResidual() {
+    return this.dashboardService.inherentVsResidual();
+  }
 }

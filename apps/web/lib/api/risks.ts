@@ -1,5 +1,5 @@
 import { apiRequest } from './client';
-import { PaginatedRisks, Risk } from './types';
+import { PaginatedRisks, Risk, Treatment } from './types';
 
 export interface RiskPayload {
   title: string;
@@ -32,6 +32,23 @@ export function createRisk(payload: RiskPayload) {
 export function updateRisk(id: string, payload: Partial<RiskPayload>) {
   return apiRequest<Risk>(`/risks/${id}`, {
     method: 'PATCH',
+    body: JSON.stringify(payload)
+  });
+}
+
+export function createTreatment(
+  riskId: string,
+  payload: {
+    strategy: string;
+    description: string;
+    owner: string;
+    targetDate: string;
+    status: string;
+    notes?: string;
+  }
+) {
+  return apiRequest<Treatment>(`/risks/${riskId}/treatments`, {
+    method: 'POST',
     body: JSON.stringify(payload)
   });
 }
